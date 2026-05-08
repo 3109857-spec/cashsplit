@@ -127,13 +127,14 @@ textarea.ptx::placeholder{color:var(--t3)}
 .dwarn{background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--rs);padding:11px 16px;font-size:12px;color:#92400E;margin-bottom:12px;display:flex;align-items:center;gap:7px;font-weight:500}
 .ambsec{background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--r);padding:14px 18px;margin-bottom:18px}
 .ambtit{font-size:13px;font-weight:600;color:var(--unc);margin-bottom:10px}
-.ttwrap{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}
+.ttwrap{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .tt{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed}
-.tt th{padding:14px 20px;text-align:right;font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.5px;border-bottom:1px solid var(--bd);background:var(--sf2);text-transform:uppercase}
-.tt td{padding:18px 20px;border-bottom:1px solid #F3F4F6;color:var(--t1);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.tt th{padding:14px 22px;text-align:right;font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.6px;border-bottom:2px solid var(--bd);background:var(--sf2);text-transform:uppercase}
+.tt td{padding:20px 22px;border-bottom:1px solid #F3F4F6;color:var(--t1);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;line-height:1.5}
 .tt tr:last-child td{border-bottom:none}
-.tt tr:hover td{background:var(--sf2)}
+.tt tr:hover td{background:#FAFBFF}
 .tt tr.dup td{opacity:.35}
+.tt tbody tr{transition:background .15s}
 .ttg{display:flex;gap:6px;flex-shrink:0}
 .ttb{padding:8px 14px;font-size:12px;font-weight:600;font-family:'Heebo',sans-serif;cursor:pointer;border:1.5px solid var(--bd);background:var(--sf);color:var(--t3);border-radius:8px;transition:all .15s;white-space:nowrap}
 .ttb:hover{border-color:#C0C7D0;color:var(--t2);background:var(--sf2)}
@@ -220,6 +221,25 @@ textarea.ptx::placeholder{color:var(--t3)}
 
 .cat-sel:focus{border-color:var(--bizm) !important;box-shadow:0 0 0 3px rgba(58,123,213,0.12)}
 .cat-sel:hover{border-color:#C0C7D0 !important}
+/* Custom categories modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal{background:var(--sf);border-radius:20px;padding:32px;width:420px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.15);border:1px solid var(--bd)}
+.modal-title{font-size:18px;font-weight:800;color:var(--t1);margin-bottom:6px;letter-spacing:-.3px}
+.modal-sub{font-size:13px;color:var(--t3);margin-bottom:24px}
+.modal-cats{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;max-height:240px;overflow-y:auto}
+.modal-cat-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--sf2);border-radius:10px;border:1px solid var(--bd)}
+.modal-cat-emoji{font-size:18px;flex-shrink:0}
+.modal-cat-name{flex:1;font-size:14px;font-weight:500;color:var(--t1)}
+.modal-cat-del{background:none;border:none;cursor:pointer;color:var(--t3);font-size:14px;padding:2px;transition:color .15s}
+.modal-cat-del:hover{color:var(--red)}
+.modal-add-row{display:flex;gap:8px}
+.modal-emoji-input{width:52px;padding:10px;border:1.5px solid var(--bd);border-radius:var(--rs);font-size:16px;text-align:center;outline:none;background:var(--sf);transition:border-color .2s}
+.modal-emoji-input:focus{border-color:var(--bizm)}
+.modal-name-input{flex:1;padding:10px 14px;border:1.5px solid var(--bd);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:14px;color:var(--t1);background:var(--sf);outline:none;transition:border-color .2s}
+.modal-name-input:focus{border-color:var(--bizm)}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--bd)}
+.btn-cat-manage{padding:8px 16px;border-radius:var(--rs);border:1.5px solid var(--bd);background:var(--sf);color:var(--t2);font-family:'Heebo',sans-serif;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.btn-cat-manage:hover{background:var(--sf2);border-color:#C0C7D0;color:var(--t1)}
 </style>
 </head>
 <body>
@@ -383,6 +403,23 @@ textarea.ptx::placeholder{color:var(--t3)}
   </div>
 </div>
 </div>
+
+  <!-- Category Management Modal -->
+  <div id="cat-modal" class="modal-bg" style="display:none" onclick="if(event.target===this)closeCatModal()">
+    <div class="modal">
+      <div class="modal-title">⚙️ ניהול קטגוריות</div>
+      <div class="modal-sub">הוסף קטגוריות מותאמות אישית או מחק קיימות</div>
+      <div class="modal-cats" id="modal-cats-list"></div>
+      <div class="modal-add-row">
+        <input class="modal-emoji-input" id="new-cat-emoji" placeholder="🏷" maxlength="2">
+        <input class="modal-name-input" id="new-cat-name" placeholder="שם הקטגוריה..." onkeydown="if(event.key==='Enter')addCustomCat()">
+        <button class="btn" onclick="addCustomCat()" style="padding:10px 16px;font-size:13px">+ הוסף</button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn2" onclick="closeCatModal()">סגור</button>
+      </div>
+    </div>
+  </div>
 </div>
 <script>
 
@@ -589,14 +626,14 @@ function renderTxList(){
 }
 
 function ambRow(t){
-  const c=CATS[t.category]||CATS.other,curr=t.currency==='ILS'?'₪':t.currency==='USD'?'$':'€';
+  const c={...CATS,...CUSTOM_CATS}[t.category]||CATS.other,curr=t.currency==='ILS'?'₪':t.currency==='USD'?'$':'€';
   return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(217,119,6,.15);font-size:12px"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.description}</span><span>${curr}${Math.abs(t.amount).toLocaleString('he-IL')}</span><span>${c.emoji} ${c.label}</span><div class="type-toggle">${typeBtns(t)}</div></div>`;
 }
 
 function txRow(t){
-  const c=CATS[t.category]||CATS.other,curr=t.currency==='ILS'?'₪':t.currency==='USD'?'$':'€';
+  const c={...CATS,...CUSTOM_CATS}[t.category]||CATS.other,curr=t.currency==='ILS'?'₪':t.currency==='USD'?'$':'€';
   const conf=t.confidence==='high'?'conf-high':t.confidence==='medium'?'conf-medium':'conf-low';
-  return `<tr class="${t.isDuplicate?'dup-row':''}"><td style="color:var(--text3)">${t.date||'—'}</td><td title="${t.description}"><span class="conf-dot ${conf}"></span>${t.description}</td><td><select class="cat-sel" onchange="changeCat(${t.id},this.value)" onclick="this.focus()" style="border:1.5px solid var(--bd);border-radius:8px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--t1);background:var(--sf);cursor:pointer;outline:none;transition:border-color .2s;width:100%">${Object.entries(CATS).map(([k,v])=>`<option value="${k}" ${k===t.category?'selected':''}>${v.emoji} ${v.label}</option>`).join('')}</select></td><td><div class="type-toggle">${typeBtns(t)}</div></td><td><span class="src-tag">${(t.source||'').slice(0,6)}</span></td><td class="${t.amount>=0?'amount-pos':''}">${t.amount>=0?'+':''}${curr}${Math.abs(t.amount).toLocaleString('he-IL')}</td></tr>`;
+  return `<tr class="${t.isDuplicate?'dup-row':''}"><td style="color:var(--text3)">${t.date||'—'}</td><td title="${t.description}"><span class="conf-dot ${conf}"></span>${t.description}</td><td><select class="cat-sel" onchange="changeCat(${t.id},this.value)" onclick="this.focus()" style="border:1.5px solid var(--bd);border-radius:8px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--t1);background:var(--sf);cursor:pointer;outline:none;transition:border-color .2s;width:100%">${Object.entries({...CATS,...CUSTOM_CATS}).map(([k,v])=>`<option value="${k}" ${k===t.category?'selected':''}>${v.emoji} ${v.label}</option>`).join('')}</select></td><td><div class="type-toggle">${typeBtns(t)}</div></td><td><span class="src-tag">${(t.source||'').slice(0,6)}</span></td><td class="${t.amount>=0?'amount-pos':''}">${t.amount>=0?'+':''}${curr}${Math.abs(t.amount).toLocaleString('he-IL')}</td></tr>`;
 }
 
 function typeBtns(t){
@@ -667,7 +704,42 @@ function clearAll(){if(confirm('למחוק את כל הנתונים?')){TX=[];RE
 
 function saveLocal(){try{localStorage.setItem('csp_tx',JSON.stringify(TX));localStorage.setItem('csp_rec',JSON.stringify(REC));}catch(e){}}
 function updateCount(){const e=document.getElementById('tx-cnt');if(TX.length){e.textContent=TX.length;e.style.display='inline-flex';}else e.style.display='none';}
+// Custom categories
+let CUSTOM_CATS = {};
+function getAllCats(){return Object.assign({},CATS,CUSTOM_CATS);}
+function openCatModal(){renderCatModal();document.getElementById('cat-modal').style.display='flex';}
+function closeCatModal(){document.getElementById('cat-modal').style.display='none';renderTxList();}
+function renderCatModal(){
+  const el=document.getElementById('modal-cats-list');
+  let html='';
+  Object.entries(CATS).forEach(([k,v])=>{
+    html+='<div class="modal-cat-row"><span class="modal-cat-emoji">'+v.emoji+'</span><span class="modal-cat-name">'+v.label+'</span><span style="font-size:10px;color:var(--t3);margin-right:auto">מובנית</span></div>';
+  });
+  Object.entries(CUSTOM_CATS).forEach(([k,v])=>{
+    html+='<div class="modal-cat-row"><span class="modal-cat-emoji">'+v.emoji+'</span><span class="modal-cat-name">'+v.label+'</span><button class="modal-cat-del" onclick="delCustomCat(decodeURIComponent(this.dataset.k))" data-k="'+encodeURIComponent(k)+'">✕</button></div>';
+  });
+  el.innerHTML=html;
+}
+function addCustomCat(){
+  const emoji=document.getElementById('new-cat-emoji').value.trim()||'🏷';
+  const name=document.getElementById('new-cat-name').value.trim();
+  if(!name)return;
+  CUSTOM_CATS['custom_'+Date.now()]={label:name,emoji:emoji,color:'#9CA3AF'};
+  saveCats();
+  document.getElementById('new-cat-emoji').value='';
+  document.getElementById('new-cat-name').value='';
+  renderCatModal();
+}
+function delCustomCat(key){delete CUSTOM_CATS[key];saveCats();renderCatModal();}
+function saveCats(){
+  try{localStorage.setItem('csp_cats',JSON.stringify(CUSTOM_CATS));}catch(e){}
+}
+function loadCats(){
+  try{const s=localStorage.getItem('csp_cats');if(s)CUSTOM_CATS=JSON.parse(s);}catch(e){}
+}
+
 function loadLocal(){
+  loadCats();
   try{
     const k=localStorage.getItem('csp_apikey');
     if(k){
