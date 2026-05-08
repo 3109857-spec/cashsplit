@@ -475,12 +475,11 @@ ${anonymize(raw).slice(0,7000)}`;
       let js = jm[0];
       try{ parsed = JSON.parse(js); }
       catch(pe){
-        // Try removing trailing commas
-        js = js.replace(/,\s*\]/g,']').replace(/,\s*\}/g,'}');
+        js = js.replace(/,\s*]/g,']').replace(/,\s*}/g,'}');
         try{ parsed = JSON.parse(js); }
         catch(e2){ throw new Error('JSON error: ' + e2.message); }
       }
-    }
+    } catch(outerErr){ throw outerErr; }
     if(!Array.isArray(parsed)||!parsed.length)throw new Error('לא זוהו עסקאות');
     const clean=parsed.map((t,i)=>({
       id:Date.now()+i,date:String(t.date||''),description:String(t.description||'לא ידוע'),
