@@ -289,11 +289,15 @@ textarea.ptx::placeholder{color:var(--t3)}
 .modal-title{font-size:19px;font-weight:800;color:var(--navy);margin-bottom:4px;letter-spacing:-.4px}
 .modal-sub{font-size:13px;color:var(--t3);margin-bottom:24px;font-weight:500}
 .modal-cats{display:flex;flex-direction:column;gap:7px;margin-bottom:20px;max-height:250px;overflow-y:auto}
-.modal-cat-row{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--sf2);border-radius:10px;border:1px solid var(--bd)}
-.mci{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;background:var(--bd2)}
+.modal-cat-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--sf2);border-radius:10px;border:1px solid var(--bd);transition:border-color .15s}
+.modal-cat-row:hover{border-color:#CBD5E1}
+.mci{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:var(--bd2)}
 .mcn{flex:1;font-size:13px;font-weight:600;color:var(--t1)}
-.mct{font-size:10px;color:var(--t3);font-weight:500}
-.mcd{width:28px;height:28px;background:none;border:1.5px solid var(--bd);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);transition:all .15s}
+.mct{font-size:10px;color:var(--t3);font-weight:500;padding:2px 7px;background:var(--bd2);border-radius:5px}
+.mce{width:28px;height:28px;background:none;border:1.5px solid var(--bd);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);transition:all .15s;flex-shrink:0}
+.mce:hover{border-color:var(--accent);background:var(--accent-l);color:var(--accent)}
+.mce svg{width:11px;height:11px;stroke:currentColor}
+.mcd{width:28px;height:28px;background:none;border:1.5px solid var(--bd);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);transition:all .15s;flex-shrink:0}
 .mcd:hover{border-color:#FECACA;background:var(--redl);color:var(--red)}
 .mcd svg{width:11px;height:11px;stroke:currentColor}
 .modal-add-row{display:flex;gap:8px}
@@ -620,18 +624,38 @@ textarea.ptx::placeholder{color:var(--t3)}
 
 <!-- Category Modal -->
 <div id="cat-modal" class="modal-bg" style="display:none" onclick="if(event.target===this)closeCatModal()">
-  <div class="modal">
+  <div class="modal" style="width:480px">
     <div class="modal-title">ניהול קטגוריות</div>
-    <div class="modal-sub">הוסף קטגוריות מותאמות אישית לסיווג עסקאות</div>
+    <div class="modal-sub">ערוך, מחק או הוסף קטגוריות — השינויים נשמרים לצמיתות</div>
     <div class="modal-cats" id="modal-cats-list"></div>
-    <div class="modal-add-row">
-      <input class="mei" id="new-cat-emoji" placeholder="🏷" maxlength="2">
-      <input class="mni" id="new-cat-name" placeholder="שם הקטגוריה החדשה..." onkeydown="if(event.key==='Enter')addCustomCat()">
-      <button class="btn btn-sm" onclick="addCustomCat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>הוסף</button>
+    <div style="border-top:1px solid var(--bd);padding-top:16px;margin-top:4px">
+      <div style="font-size:11px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">הוסף קטגוריה חדשה</div>
+      <div class="modal-add-row">
+        <input class="mei" id="new-cat-emoji" placeholder="🏷" maxlength="2">
+        <input class="mni" id="new-cat-name" placeholder="שם הקטגוריה..." onkeydown="if(event.key==='Enter')addCustomCat()">
+        <button class="btn btn-sm" onclick="addCustomCat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>הוסף</button>
+      </div>
     </div>
     <div class="modal-footer">
-      <span style="font-size:12px;color:var(--t3)">קטגוריות מותאמות נשמרות לצמיתות</span>
+      <button class="btn2 btn-sm" onclick="resetCats()" style="color:var(--red);border-color:#FECACA">איפוס לברירת מחדל</button>
       <button class="btn2" onclick="closeCatModal()">סגור</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit category modal -->
+<div id="edit-cat-modal" class="modal-bg" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal" style="width:340px">
+    <div class="modal-title" style="font-size:16px">עריכת קטגוריה</div>
+    <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px">
+      <div class="fg"><label style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">אמוג'י / אייקון</label>
+        <input class="fi" id="edit-cat-emoji" maxlength="2" style="width:60px;text-align:center;font-size:18px"></div>
+      <div class="fg"><label style="font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">שם</label>
+        <input class="fi" id="edit-cat-name" placeholder="שם הקטגוריה" onkeydown="if(event.key==='Enter')saveEditCat()"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn2" onclick="document.getElementById('edit-cat-modal').style.display='none'">ביטול</button>
+      <button class="btn" onclick="saveEditCat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>שמור</button>
     </div>
   </div>
 </div>
@@ -656,10 +680,16 @@ var CATS = {
   other: {l:'אחר', e:'•', c:'#64748B', bg:'#F8FAFC'}
 };
 
+var HIDDEN_CATS = {};
+
 function getAllCats() {
   var all = {};
-  Object.keys(CATS).forEach(function(k){ all[k] = CATS[k]; });
-  Object.keys(CUSTOM_CATS).forEach(function(k){ all[k] = CUSTOM_CATS[k]; });
+  Object.keys(CATS).forEach(function(k){
+    if (!HIDDEN_CATS[k]) all[k] = CATS[k];
+  });
+  Object.keys(CUSTOM_CATS).forEach(function(k){
+    if (CUSTOM_CATS[k] !== null && CUSTOM_CATS[k] && !k.startsWith('_')) all[k] = CUSTOM_CATS[k];
+  });
   return all;
 }
 
@@ -1165,17 +1195,75 @@ function delRec(i){ REC.splice(i,1); saveLocal(); renderRec(); }
 // ── Custom categories ──
 function openCatModal(){ renderCatModal(); document.getElementById('cat-modal').style.display='flex'; }
 function closeCatModal(){ document.getElementById('cat-modal').style.display='none'; renderTxList(); }
+var editingCatKey = null;
+
 function renderCatModal(){
   var el = document.getElementById('modal-cats-list');
+  var ac = getAllCats();
+  var keys = Object.keys(ac);
+  if (!keys.length) { el.innerHTML = '<div class="rules-empty">אין קטגוריות</div>'; return; }
   var html = '';
-  Object.entries(CATS).forEach(function(e){
-    html += '<div class="modal-cat-row"><div class="mci">'+e[1].e+'</div><div class="mcn">'+e[1].l+'</div><div class="mct">מובנית</div></div>';
-  });
-  Object.entries(CUSTOM_CATS).forEach(function(e){
-    var key = e[0], val = e[1];
-    html += '<div class="modal-cat-row"><div class="mci">'+val.e+'</div><div class="mcn">'+val.l+'</div><button class="mcd" data-k="'+encodeURIComponent(key)+'" onclick="delCustomCat(decodeURIComponent(this.dataset.k))"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
+  keys.forEach(function(key){
+    var val = ac[key];
+    var isBuiltin = !!CATS[key] && !CUSTOM_CATS[key];
+    var enc = encodeURIComponent(key);
+    var editSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    var delSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    var editBtn = '<button class="mce" data-k="'+enc+'" onclick="openEditCat(decodeURIComponent(this.dataset.k))" title="ערוך">'+editSvg+'</button>';
+    var delBtn;
+    if (isBuiltin) {
+      delBtn = '<button class="mcd" data-k="'+enc+'" onclick="hideBuiltinCat(this.dataset.k)" title="הסתר">'+delSvg+'</button>';
+    } else {
+      delBtn = '<button class="mcd" data-k="'+enc+'" onclick="delCustomCat(decodeURIComponent(this.dataset.k))" title="מחק">'+delSvg+'</button>';
+    }
+    html += '<div class="modal-cat-row"><div class="mci">'+val.e+'</div><div class="mcn">'+val.l+'</div>'+(isBuiltin?'<span class="mct">מובנית</span>':'')+'<div style="display:flex;gap:5px">'+editBtn+delBtn+'</div></div>';
   });
   el.innerHTML = html;
+}
+
+
+function openEditCat(encodedKey){
+  var key = decodeURIComponent(encodedKey);
+  editingCatKey = key;
+  var ac = getAllCats();
+  var cat = ac[key];
+  if (!cat) return;
+  document.getElementById('edit-cat-emoji').value = cat.e || '';
+  document.getElementById('edit-cat-name').value = cat.l || '';
+  document.getElementById('edit-cat-modal').style.display = 'flex';
+}
+
+function saveEditCat(){
+  if (!editingCatKey) return;
+  var emoji = document.getElementById('edit-cat-emoji').value.trim() || '•';
+  var name = document.getElementById('edit-cat-name').value.trim();
+  if (!name) return;
+  // Save as custom override (works for both builtin and custom)
+  var existing = getAllCats()[editingCatKey] || {};
+  CUSTOM_CATS[editingCatKey] = {l:name, e:emoji, c:existing.c||'#64748B', bg:existing.bg||'#F8FAFC'};
+  saveCats();
+  document.getElementById('edit-cat-modal').style.display = 'none';
+  renderCatModal();
+  renderTxList(); // refresh dropdowns
+}
+
+function hideBuiltinCat(key){
+  if (!confirm('להסתיר קטגוריה זו? תוכל לשחזר עם "איפוס לברירת מחדל"')) return;
+  CUSTOM_CATS['_hidden_'+key] = null; // marker
+  // Actually just mark as hidden
+  if (!CUSTOM_CATS['_hiddenList']) CUSTOM_CATS['_hiddenList'] = {l:'_hidden',e:'',c:'',bg:''};
+  HIDDEN_CATS[key] = true;
+  saveCats();
+  renderCatModal();
+}
+
+function resetCats(){
+  if (!confirm('לאפס את כל הקטגוריות לברירת המחדל?')) return;
+  CUSTOM_CATS = {};
+  HIDDEN_CATS = {};
+  saveCats();
+  renderCatModal();
+  renderTxList();
 }
 function addCustomCat(){
   var emoji = document.getElementById('new-cat-emoji').value.trim() || '🏷';
@@ -1188,8 +1276,14 @@ function addCustomCat(){
   renderCatModal();
 }
 function delCustomCat(key){ delete CUSTOM_CATS[key]; saveCats(); renderCatModal(); }
-function saveCats(){ try{ localStorage.setItem('csp_cats', JSON.stringify(CUSTOM_CATS)); }catch(e){} }
-function loadCats(){ try{ var s=localStorage.getItem('csp_cats'); if(s) CUSTOM_CATS=JSON.parse(s); }catch(e){} }
+function saveCats(){
+  try{ localStorage.setItem('csp_cats', JSON.stringify(CUSTOM_CATS)); }catch(e){}
+  try{ localStorage.setItem('csp_hidden', JSON.stringify(HIDDEN_CATS)); }catch(e){}
+}
+function loadCats(){
+  try{ var s=localStorage.getItem('csp_cats'); if(s) CUSTOM_CATS=JSON.parse(s); }catch(e){}
+  try{ var h=localStorage.getItem('csp_hidden'); if(h) HIDDEN_CATS=JSON.parse(h); }catch(e){}
+}
 
 // ── Export ──
 function xp(type){
