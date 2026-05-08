@@ -472,15 +472,13 @@ ${anonymize(raw).slice(0,7000)}`;
     if(!jm)throw new Error('תגובה לא תקינה מה-AI: '+rawText.slice(0,200));
     let parsed;
     try{
-      let js=jm[0];
-      // sanitize: remove control chars, fix escaped backslashes
-      js=js.replace(/\u2018|\u2019|\u201A/g,"'").replace(/\u201C|\u201D|\u201E/g,'"').replace(/[\x00-\x1f\x7f]/g,' ');
-      // remove trailing commas before ] or }
-      js=js.replace(/,(\s*[}\]])/g,'$1');
-      try{parsed=JSON.parse(js);}catch(pe){
-        const objs=[];const pat=new RegExp('\\{[^{}]*\\}','g');let m2;
-        while((m2=pat.exec(js))!==null){try{objs.push(JSON.parse(m2[0]));}catch(e){}}
-        if(objs.length){parsed=objs;}else{throw new Error('JSON פגום: '+pe.message);}
+      let js = jm[0];
+      try{ parsed = JSON.parse(js); }
+      catch(pe){
+        // Try removing trailing commas
+        js = js.replace(/,\s*\]/g,']').replace(/,\s*\}/g,'}');
+        try{ parsed = JSON.parse(js); }
+        catch(e2){ throw new Error('JSON error: ' + e2.message); }
       }
     }
     if(!Array.isArray(parsed)||!parsed.length)throw new Error('לא זוהו עסקאות');
