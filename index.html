@@ -550,13 +550,16 @@ function monLabel(k){
 function txDate(d){
   if(!d)return null;
   var dt=new Date(d);
-  if(!isNaN(dt.getTime())){return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');}
-  var parts=String(d).replace(/-/g,'/').split('/');
+  if(!isNaN(dt.getTime())&&dt.getFullYear()>2000){return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');}
+  // Handle DD/MM/YYYY, DD.MM.YY, DD-MM-YY etc.
+  var s=String(d).replace(/[\.\-]/g,'/');
+  var parts=s.split('/');
   if(parts.length>=3){
     var dy=+parts[0],mo=+parts[1],yr=+parts[2];
     if(yr<100)yr+=2000;
+    if(dy>31){var tmp=dy;dy=yr;yr=tmp;} // handle YYYY/MM/DD
     var dt2=new Date(yr,mo-1,dy);
-    if(!isNaN(dt2.getTime()))return dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0');
+    if(!isNaN(dt2.getTime())&&dt2.getFullYear()>2000)return dt2.getFullYear()+'-'+String(dt2.getMonth()+1).padStart(2,'0');
   }
   return null;
 }
@@ -673,23 +676,36 @@ async function runAI(){
     var rawTxt=data.content.map(function(b){return b.text||'';}).join('');
     // Strip markdown fences
     var clean=rawTxt.replace(/```json/gi,'').replace(/```/g,'').trim();
-        // Try to find complete JSON array
+        // Strip markdown fences
     var jm = clean.match(/\[[\s\S]*\]/);
-    // If not found (truncated), try to recover partial JSON
     if (!jm && clean.indexOf('[') >= 0) {
       var partial = clean.slice(clean.indexOf('['));
-      // Close truncated array
       partial = partial.replace(/,\s*\{[^}]*$/, '').trim();
       if (partial.slice(-1) !== ']') partial += ']';
       jm = [partial];
     }
     if (!jm) throw new Error('תגובה לא תקינה: ' + clean.slice(0, 120));
     var parsed;
-    try { parsed = JSON.parse(jm[0]); }
-    catch(e1) {
-      var js2 = jm[0].split(',]').join(']').split(',}').join('}');
-      try { parsed = JSON.parse(js2); }
-      catch(e2) { throw new Error('שגיאת JSON: ' + e2.message); }
+    // Robust parsing: try direct, then fix trailing commas, then extract objects one by one
+    var tryParse = function(s) {
+      try { return JSON.parse(s); } catch(e) { return null; }
+    };
+    parsed = tryParse(jm[0]);
+    if (!parsed) {
+      var s2 = jm[0].split(',]').join(']').split(',}').join('}');
+      parsed = tryParse(s2);
+    }
+    if (!parsed) {
+      // Extract individual objects using regex
+      var objs = [];
+      var objRx = /\{(?:[^{}]|"(?:[^"\\]|\\.)*")*\}/g;
+      var om;
+      while ((om = objRx.exec(jm[0])) !== null) {
+        var o = tryParse(om[0]);
+        if (o) objs.push(o);
+      }
+      if (objs.length) { parsed = objs; }
+      else { throw new Error('שגיאת JSON — לא ניתן לפרסר את תגובת ה-AI'); }
     }
     if(!Array.isArray(parsed)||!parsed.length)throw new Error('לא זוהו עסקאות');
     var ts=Date.now(),newIds=[];
