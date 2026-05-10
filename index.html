@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -42,6 +44,12 @@ html,body{min-height:100%;background:var(--bg);font-family:'Heebo',sans-serif;co
 .logo-i{background:linear-gradient(135deg,var(--navy) 0%,var(--accent) 100%);color:#fff;width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(37,99,235,0.3);font-size:18px;font-weight:800}
 .hbadges{display:flex;gap:6px}
 .hb{font-size:11px;font-weight:600;padding:5px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+.sync-bar{background:#F0FDF4;border-bottom:1px solid #BBF7D0;padding:10px 36px;font-size:12px;color:#166534;font-weight:600;display:flex;align-items:center;gap:8px}
+.sync-bar svg{width:14px;height:14px;stroke:#16A34A}
+.sync-bar.syncing{background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8}
+.sync-bar.syncing svg{stroke:#2563EB}
+.sync-bar.error{background:#FEF2F2;border-color:#FECACA;color:#DC2626}
+.sync-bar.error svg{stroke:#DC2626}
 .hb-g{background:var(--grnl);color:var(--grn)}
 .hb-b{background:var(--accent-l);color:var(--accent)}
 .tabs{display:flex;gap:0;overflow-x:auto;scrollbar-width:none}
@@ -355,6 +363,10 @@ textarea.ptx::placeholder{color:var(--t3)}
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>פרטי
       </span>
     </div>
+  </div>
+  <div id="sync-bar" class="sync-bar" style="margin:0 -36px;padding:8px 36px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    <span id="sync-msg">מתחבר לענן...</span>
   </div>
   <div class="tabs">
     <button class="tab active" onclick="goTab('dash')">
@@ -1301,14 +1313,82 @@ function xp(type){
 }
 
 function clrAll(){
-  if(!confirm('למחוק את כל הנתונים לצמיתות?')) return;
+  if(!confirm('למחוק את כל הנתונים לצמיתות? (ימחק גם מהענן)')) return;
   TX=[];REC=[];IMPORTS=[];
   ['csp_tx','csp_rec','csp_imp'].forEach(function(k){ try{localStorage.removeItem(k);}catch(e){} });
+  if(db){ db.collection('cashsplit').doc('shared').delete().catch(function(){}); }
   upd(); rdash(); renderTxList();
 }
 
 // ── Persistence ──
+var db = null;
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDqyJfMns8ITE4EFfhOFS6yFTLo8r5sQHM",
+  authDomain: "cashsplit-9510b.firebaseapp.com",
+  projectId: "cashsplit-9510b",
+  storageBucket: "cashsplit-9510b.firebasestorage.app",
+  messagingSenderId: "772943025970",
+  appId: "1:772943025970:web:406b77c68c734ff196e92b"
+};
+
+function initFirebase() {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    setSyncStatus('syncing', 'מתחבר...');
+    setupRealtimeSync();
+  } catch(e) {
+    setSyncStatus('error', 'שגיאת חיבור — עובד במצב מקומי');
+    loadLocalFallback();
+  }
+}
+
+function setSyncStatus(type, msg) {
+  var bar = document.getElementById('sync-bar');
+  var msgEl = document.getElementById('sync-msg');
+  if (!bar) return;
+  bar.className = 'sync-bar' + (type ? ' ' + type : '');
+  if (msgEl) msgEl.textContent = msg;
+}
+
+function setupRealtimeSync() {
+  if (!db) return;
+  db.collection('cashsplit').doc('shared').onSnapshot(function(doc) {
+    if (doc.exists) {
+      var data = doc.data();
+      TX = data.TX || [];
+      REC = data.REC || [];
+      IMPORTS = data.IMPORTS || [];
+      CUSTOM_CATS = data.CUSTOM_CATS || {};
+      RULES = data.RULES || [];
+      HIDDEN_CATS = data.HIDDEN_CATS || {};
+      upd(); rdash(); renderTxList();
+      var t = new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+      setSyncStatus('', 'מסונכרן (' + TX.length + ' עסקאות) · עודכן ' + t);
+    } else {
+      setSyncStatus('', 'מחובר לענן — ממתין לנתונים');
+    }
+  }, function(err) {
+    setSyncStatus('error', 'בעיית חיבור — עובד מקומית');
+    loadLocalFallback();
+  });
+}
+
 function saveLocal(){
+  if (db) {
+    setSyncStatus('syncing', 'שומר...');
+    db.collection('cashsplit').doc('shared').set({
+      TX: TX, REC: REC, IMPORTS: IMPORTS,
+      CUSTOM_CATS: CUSTOM_CATS, RULES: RULES, HIDDEN_CATS: HIDDEN_CATS,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function(){
+      var t = new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+      setSyncStatus('', 'נשמר בענן · ' + t);
+    }).catch(function(e){
+      setSyncStatus('error', 'שגיאה בשמירה: ' + e.message);
+    });
+  }
+  // Also save locally as backup
   try{ localStorage.setItem('csp_tx',JSON.stringify(TX)); }catch(e){}
   try{ localStorage.setItem('csp_rec',JSON.stringify(REC)); }catch(e){}
   try{ localStorage.setItem('csp_imp',JSON.stringify(IMPORTS)); }catch(e){}
@@ -1374,15 +1454,22 @@ function getRulesPrompt() {
   return '\n\nCUSTOM RULES (must follow exactly, highest priority):\n' + lines.join('\n');
 }
 
+function loadLocalFallback(){
+  loadCats();
+  loadRules();
+  try{ var t=localStorage.getItem('csp_tx'); if(t) TX=JSON.parse(t); }catch(e){}
+  try{ var r=localStorage.getItem('csp_rec'); if(r) REC=JSON.parse(r); }catch(e){}
+  try{ var i=localStorage.getItem('csp_imp'); if(i) IMPORTS=JSON.parse(i); }catch(e){}
+  upd(); rdash(); if(TX.length) renderTxList();
+}
+
 function loadLocal(){
   loadCats();
   loadRules();
   var k=localStorage.getItem('csp_apikey');
   if(k){ document.getElementById('api-key').value=k; document.getElementById('api-section').style.display='none'; document.getElementById('api-saved').style.display='flex'; }
-  try{ var t=localStorage.getItem('csp_tx'); if(t) TX=JSON.parse(t); }catch(e){}
-  try{ var r=localStorage.getItem('csp_rec'); if(r) REC=JSON.parse(r); }catch(e){}
-  try{ var i=localStorage.getItem('csp_imp'); if(i) IMPORTS=JSON.parse(i); }catch(e){}
-  upd(); buildMonthSel(); rdash(); if(TX.length) renderTxList();
+  buildMonthSel();
+  initFirebase();
 }
 function upd(){
   var e=document.getElementById('txc');
