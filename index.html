@@ -899,7 +899,7 @@ async function runAnalysis() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-6',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 4096,
         messages: [{role:'user', content:prompt}]
       })
@@ -912,7 +912,10 @@ async function runAnalysis() {
     if (data.error) throw new Error(data.error.message);
     var rawTxt = data.content.map(function(b){ return b.text || ''; }).join('');
     var jm = rawTxt.match(/\[[\s\S]*\]/);
-    if (!jm) throw new Error('תגובה לא תקינה מה-AI: ' + rawTxt.slice(0,150));
+    if (!jm) {
+      console.error('AI raw response:', rawTxt);
+      throw new Error('תגובה לא תקינה. תגובה מה-AI: ' + (rawTxt ? rawTxt.slice(0,200) : '(ריקה)'));
+    }
     var parsed;
     (function(){
       var js = jm[0];
