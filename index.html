@@ -911,32 +911,20 @@ async function runAnalysis() {
     var data = await resp.json();
     if (data.error) throw new Error(data.error.message);
     var rawTxt = data.content.map(function(b){ return b.text || ''; }).join('');
-    var jm = rawTxt.match(/\[[\s\S]*\]/);
+    var cleanTxt = rawTxt.replace(/```json/gi,'').replace(/```/g,'').trim();
+    var jm = cleanTxt.match(/\[[\s\S]*\]/);
     if (!jm) {
       console.error('AI raw response:', rawTxt);
       throw new Error('תגובה לא תקינה. תגובה מה-AI: ' + (rawTxt ? rawTxt.slice(0,200) : '(ריקה)'));
     }
     var parsed;
-    (function(){
-      var js = jm[0];
-      js = js.replace(/[\u2018\u2019\u201A\u2032]/g, "'").replace(/[\u201C\u201D\u201E\u2033]/g, '"');
-      js = js.replace(/[ -
--]/g, ' ');
-      // Fix trailing commas
-      js = js.replace(/,\s*\]/g, ']').replace(/,\s*\}/g, '}');
-      try {
-        parsed = JSON.parse(js);
-      } catch(pe) {
-        var objs = [];
-        var rx = new RegExp('\\{[^{}]*\\}', 'g');
-        var m;
-        while ((m = rx.exec(js)) !== null) {
-          try { objs.push(JSON.parse(m[0])); } catch(e) {}
-        }
-        if (objs.length) { parsed = objs; }
-        else { throw new Error('JSON error: ' + pe.message); }
-      }
-    }());
+    try { parsed = JSON.parse(jm[0]); }
+    catch(e1) {
+      var js2 = jm[0];
+      js2 = js2.split(',]').join(']').split(',}').join('}');
+      try { parsed = JSON.parse(js2); }
+      catch(e2) { throw new Error('JSON error: ' + e2.message); }
+    }
     if (!Array.isArray(parsed) || !parsed.length) throw new Error('לא זוהו עסקאות');
     var ts = Date.now();
     var newIds = [];
