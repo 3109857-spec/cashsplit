@@ -914,12 +914,27 @@ async function runAnalysis() {
     var jm = rawTxt.match(/\[[\s\S]*\]/);
     if (!jm) throw new Error('תגובה לא תקינה מה-AI');
     var parsed;
-    try { parsed = JSON.parse(jm[0]); }
-    catch(pe) {
-      var js2 = jm[0].replace(/,(\s*[}\]])/g, '$1');
-      try { parsed = JSON.parse(js2); }
-      catch(e2) { throw new Error('JSON error: ' + e2.message); }
-    }
+    (function(){
+      var js = jm[0];
+      // Fix smart quotes
+      js = js.replace(/‘|’|‚/g, "'").replace(/“|”|„/g, '"');
+      // Remove control chars
+      js = js.replace(/[ --]/g, ' ');
+      // Fix trailing commas
+      js = js.replace(/,\s*\]/g, ']').replace(/,\s*\}/g, '}');
+      try {
+        parsed = JSON.parse(js);
+      } catch(pe) {
+        var objs = [];
+        var rx = new RegExp('\\{[^{}]*\\}', 'g');
+        var m;
+        while ((m = rx.exec(js)) !== null) {
+          try { objs.push(JSON.parse(m[0])); } catch(e) {}
+        }
+        if (objs.length) { parsed = objs; }
+        else { throw new Error('JSON error: ' + pe.message); }
+      }
+    }());
     if (!Array.isArray(parsed) || !parsed.length) throw new Error('לא זוהו עסקאות');
     var ts = Date.now();
     var newIds = [];
