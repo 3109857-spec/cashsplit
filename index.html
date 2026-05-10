@@ -665,7 +665,7 @@ async function runAI(){
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:4096,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:8192,messages:[{role:'user',content:prompt}]})
     });
     if(!resp.ok){var et=await resp.text();throw new Error('API '+resp.status+': '+et.slice(0,200));}
     var data=await resp.json();
@@ -673,14 +673,23 @@ async function runAI(){
     var rawTxt=data.content.map(function(b){return b.text||'';}).join('');
     // Strip markdown fences
     var clean=rawTxt.replace(/```json/gi,'').replace(/```/g,'').trim();
-    var jm=clean.match(/\[[\s\S]*\]/);
-    if(!jm)throw new Error('תגובה לא תקינה: '+clean.slice(0,120));
+        // Try to find complete JSON array
+    var jm = clean.match(/\[[\s\S]*\]/);
+    // If not found (truncated), try to recover partial JSON
+    if (!jm && clean.indexOf('[') >= 0) {
+      var partial = clean.slice(clean.indexOf('['));
+      // Close truncated array
+      partial = partial.replace(/,\s*\{[^}]*$/, '').trim();
+      if (partial.slice(-1) !== ']') partial += ']';
+      jm = [partial];
+    }
+    if (!jm) throw new Error('תגובה לא תקינה: ' + clean.slice(0, 120));
     var parsed;
-    try{parsed=JSON.parse(jm[0]);}
-    catch(e1){
-      var js2=jm[0].split(',]').join(']').split(',}').join('}');
-      try{parsed=JSON.parse(js2);}
-      catch(e2){throw new Error('שגיאת JSON: '+e2.message);}
+    try { parsed = JSON.parse(jm[0]); }
+    catch(e1) {
+      var js2 = jm[0].split(',]').join(']').split(',}').join('}');
+      try { parsed = JSON.parse(js2); }
+      catch(e2) { throw new Error('שגיאת JSON: ' + e2.message); }
     }
     if(!Array.isArray(parsed)||!parsed.length)throw new Error('לא זוהו עסקאות');
     var ts=Date.now(),newIds=[];
